@@ -296,7 +296,8 @@ const LoginScreen = ({ onLogin, config, users, onRefreshData }: {
   const [regSuccess, setRegSuccess] = useState(false);
   
   const [showConnection, setShowConnection] = useState(false);
-  const theme = THEME_CONFIG[config.theme];
+  // Add fallback for theme
+  const theme = THEME_CONFIG[config.theme] || THEME_CONFIG['green'];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -580,9 +581,18 @@ export default function App() {
   });
 
   useEffect(() => {
-    const savedConfig = localStorage.getItem('parkStay_appConfig');
-    if (savedConfig) {
-      setAppConfig(JSON.parse(savedConfig));
+    try {
+      const savedConfig = localStorage.getItem('parkStay_appConfig');
+      if (savedConfig) {
+        const parsed = JSON.parse(savedConfig);
+        // Valid Theme Check
+        if (!THEME_CONFIG[parsed.theme as ThemeKey]) {
+            parsed.theme = 'green';
+        }
+        setAppConfig(parsed);
+      }
+    } catch(e) {
+      console.error("Failed to load config", e);
     }
   }, []);
 
@@ -597,7 +607,8 @@ export default function App() {
     }
   };
   
-  const theme = THEME_CONFIG[appConfig.theme];
+  // Robust Theme Fallback
+  const theme = THEME_CONFIG[appConfig.theme] || THEME_CONFIG['green'];
 
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [accommodations, setAccommodations] = useState<Accommodation[]>(ACCOMMODATIONS);
