@@ -39,7 +39,8 @@ import {
   ShieldCheck,
   Maximize2,
   Minimize2,
-  Filter
+  Filter,
+  Printer
 } from 'lucide-react';
 import { MOCK_USERS, ACCOMMODATIONS, INITIAL_BOOKINGS } from './services/mockData';
 import { User, Booking, UserRole, BookingStatus, Accommodation } from './types';
@@ -1094,7 +1095,7 @@ export default function App() {
     <div className="flex h-screen bg-gray-100 overflow-hidden">
       
       {loading && (
-        <div className="fixed inset-0 z-[60] bg-black/20 backdrop-blur-[1px] flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] bg-black/20 backdrop-blur-[1px] flex items-center justify-center no-print">
            <div className="bg-white p-4 rounded-xl shadow-lg flex items-center gap-3">
               <Loader2 className="animate-spin text-park-600" />
               <span className="text-gray-700">กำลังประมวลผล...</span>
@@ -1103,7 +1104,7 @@ export default function App() {
       )}
 
       {isResetting && (
-        <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-center justify-center">
+        <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-center justify-center no-print">
           <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center">
              <div className="relative w-20 h-20 mx-auto mb-4">
                <svg className="w-full h-full" viewBox="0 0 100 100">
@@ -1121,11 +1122,11 @@ export default function App() {
       )}
 
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setSidebarOpen(false)}></div>
+        <div className="fixed inset-0 bg-black/50 z-20 md:hidden no-print" onClick={() => setSidebarOpen(false)}></div>
       )}
 
       {!isTableExpanded && (
-        <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 ${theme.sidebar} text-white transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 flex flex-col shadow-xl`}>
+        <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 ${theme.sidebar} text-white transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 flex flex-col shadow-xl no-print`}>
           <div className="p-6 flex items-center justify-between">
             <div className="flex items-center gap-3 overflow-hidden">
               <div className="bg-white/10 p-2 rounded-lg shrink-0">
@@ -1184,7 +1185,16 @@ export default function App() {
       )}
 
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <header className="bg-white border-b border-gray-200 h-16 flex-none flex items-center justify-between px-6 shadow-sm z-10">
+        {/* PRINT HEADER - ONLY VISIBLE WHEN PRINTING */}
+        <div className="print-only text-center py-4 border-b-2 border-gray-800 mb-4">
+          <h1 className="text-2xl font-bold text-gray-900">{appConfig.appName} - รายงานสถานะการจอง</h1>
+          <p className="text-gray-600">
+            ประจำเดือน: {viewDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })} | 
+            พิมพ์เมื่อ: {new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+
+        <header className="bg-white border-b border-gray-200 h-16 flex-none flex items-center justify-between px-6 shadow-sm z-10 no-print">
           <div className="flex items-center gap-4">
             {!isTableExpanded && <button onClick={() => setSidebarOpen(true)} className="md:hidden text-gray-500"><Menu /></button>}
             <h2 className={`text-xl font-bold ${theme.textPrimary} hidden sm:block`}>
@@ -1215,7 +1225,7 @@ export default function App() {
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-3 md:p-4 space-y-2">
             
             {!isTableExpanded && (
-              <div className="flex-none grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="flex-none grid grid-cols-1 md:grid-cols-3 gap-3 no-print">
                 <div className="bg-white p-2 md:p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between relative overflow-hidden group">
                     <div className="relative z-10">
                       <p className="text-gray-500 text-xs flex items-center gap-1">
@@ -1252,7 +1262,7 @@ export default function App() {
             )}
 
             <div className="flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-0">
-              <div className="flex-none p-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between flex-wrap gap-2 z-20">
+              <div className="flex-none p-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between flex-wrap gap-2 z-20 no-print">
                 <div className="flex items-center gap-4">
                   <h3 className="font-semibold text-gray-800 flex items-center gap-2 text-sm">
                      <Calendar size={16} /> ตารางจอง
@@ -1274,6 +1284,9 @@ export default function App() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                   <button onClick={() => window.print()} className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-md transition text-gray-600 flex items-center gap-1 text-xs font-medium" title="พิมพ์รายงาน">
+                     <Printer size={16} />
+                   </button>
                    <button onClick={() => changeMonth(-1)} className="p-1.5 hover:bg-gray-200 rounded-full transition text-gray-600">
                      <ChevronLeft size={18} />
                    </button>
@@ -1313,7 +1326,7 @@ export default function App() {
                               </div>
                               <div className={`text-[10px] ${isVip ? 'text-orange-600/70' : 'text-gray-500'}`}>{acc.zone} ({acc.capacity} คน)</div>
                               
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-56 bg-white border border-gray-200 shadow-xl rounded-lg p-3 hidden group-hover:block z-50 text-left normal-case">
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-56 bg-white border border-gray-200 shadow-xl rounded-lg p-3 hidden group-hover:block z-50 text-left normal-case no-print">
                                 <h4 className="font-bold text-gray-800 mb-1">{acc.name}</h4>
                                 <div className="text-xs text-gray-600 space-y-1">
                                     <p className="flex items-center gap-2"><span className={`w-4 h-4 ${theme.bgHighlight} rounded-full flex items-center justify-center ${theme.textSecondary}`}><Users size={10} /></span> รองรับ {acc.capacity} ท่าน</p>
@@ -1373,7 +1386,7 @@ export default function App() {
                                    setEditingBooking(undefined);
                                    setPrefillData({ accommodationId: acc.id, checkInDate: date });
                                    setIsModalOpen(true);
-                                 }} className="w-full h-full flex items-center justify-center text-xl">+</div>;
+                                 }} className="w-full h-full flex items-center justify-center text-xl no-print">+</div>;
                               }
 
                               return (
@@ -1391,7 +1404,7 @@ export default function App() {
             </div>
 
             {!isTableExpanded && (
-              <div className="flex-none bg-white rounded-xl shadow-sm border border-gray-200 p-3 max-h-[140px] overflow-auto">
+              <div className="flex-none bg-white rounded-xl shadow-sm border border-gray-200 p-3 max-h-[140px] overflow-auto no-print">
                 <h3 className="font-semibold text-gray-800 mb-2 text-sm sticky top-0 bg-white pb-2 z-10 flex items-center justify-between">
                   <span>
                     {filterHouseId === 'all' 
@@ -1449,7 +1462,7 @@ export default function App() {
         ) : currentView === 'settings' ? (
           <div className="flex-1 overflow-auto p-4 md:p-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-               <div className="flex justify-between items-center mb-6">
+               <div className="flex justify-between items-center mb-6 no-print">
                   <h3 className="font-semibold text-gray-800 text-lg">รายการบ้านพักทั้งหมด</h3>
                   <button 
                     onClick={() => { setIsAccModalOpen(true); setEditingAcc(undefined); }}
@@ -1469,7 +1482,7 @@ export default function App() {
                         <th className="px-4 py-3 w-20 text-center">คน</th>
                         <th className="px-4 py-3 w-24 text-right">ราคา</th>
                         <th className="px-4 py-3 w-24 text-center">สถานะ</th>
-                        <th className="px-4 py-3 rounded-r-lg text-right w-24">จัดการ</th>
+                        <th className="px-4 py-3 rounded-r-lg text-right w-24 no-print">จัดการ</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -1494,7 +1507,7 @@ export default function App() {
                               {acc.status === 'active' ? 'ปกติ' : 'ซ่อม'}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-right flex justify-end gap-2">
+                          <td className="px-4 py-3 text-right flex justify-end gap-2 no-print">
                              <button 
                                 onClick={() => { setEditingAcc(acc); setIsAccModalOpen(true); }} 
                                 className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
@@ -1620,7 +1633,7 @@ const SystemSettingsView = ({
   return (
     <div className="flex-1 flex flex-col bg-gray-50 h-full overflow-hidden">
       {/* Tabs Header */}
-      <div className="bg-white border-b border-gray-200 px-6 pt-4">
+      <div className="bg-white border-b border-gray-200 px-6 pt-4 no-print">
         <div className="flex gap-6">
           <button 
             onClick={() => setActiveTab('general')}
@@ -1872,7 +1885,7 @@ const SystemSettingsView = ({
         )}
 
         </div>
-        <div className="text-center text-xs text-gray-400 pt-8 pb-4">
+        <div className="text-center text-xs text-gray-400 pt-8 pb-4 no-print">
           ParkManager Version 2.2.0 (Pro) &copy; 2025
         </div>
       </div>

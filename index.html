@@ -41,6 +41,74 @@
       #root {
         height: 100%;
       }
+
+      /* PRINT STYLES */
+      @media print {
+        @page {
+          size: landscape;
+          margin: 5mm;
+        }
+
+        body {
+          background: white !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          height: auto !important;
+          overflow: visible !important;
+        }
+
+        #root {
+          height: auto !important;
+          overflow: visible !important;
+        }
+
+        /* Hide UI elements */
+        .no-print {
+          display: none !important;
+        }
+
+        /* Show Print Header */
+        .print-only {
+          display: block !important;
+        }
+
+        /* Reset Containers for full expansion */
+        .flex-1, .h-screen, .overflow-hidden, .overflow-auto {
+          height: auto !important;
+          overflow: visible !important;
+          flex: none !important;
+          display: block !important;
+        }
+
+        /* Table Specifics */
+        table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          font-size: 10px !important; /* Smaller font for print */
+        }
+        
+        th, td {
+          border: 1px solid #ccc !important;
+          page-break-inside: avoid;
+        }
+
+        /* Ensure sticky headers don't float in middle of paper */
+        .sticky {
+          position: static !important;
+        }
+
+        /* Force specific background colors */
+        .bg-green-100 { background-color: #dcfce7 !important; }
+        .bg-red-100 { background-color: #fee2e2 !important; }
+        .bg-yellow-100 { background-color: #fef9c3 !important; }
+        .bg-blue-50 { background-color: #eff6ff !important; }
+        .bg-gray-50 { background-color: #f9fafb !important; }
+        .bg-orange-50 { background-color: #fff7ed !important; }
+      }
+
+      .print-only {
+        display: none;
+      }
     </style>
   <script type="importmap">
 {
