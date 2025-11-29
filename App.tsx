@@ -36,7 +36,10 @@ import {
   UserCheck,
   UserX,
   Shield,
-  ShieldCheck
+  ShieldCheck,
+  Maximize2,
+  Minimize2,
+  Filter
 } from 'lucide-react';
 import { MOCK_USERS, ACCOMMODATIONS, INITIAL_BOOKINGS } from './services/mockData';
 import { User, Booking, UserRole, BookingStatus, Accommodation } from './types';
@@ -626,6 +629,9 @@ export default function App() {
   
   const [currentView, setCurrentView] = useState<'dashboard' | 'settings' | 'system_settings'>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isTableExpanded, setIsTableExpanded] = useState(false); // New state for expanding table
+  
+  const [filterHouseId, setFilterHouseId] = useState<string>('all'); // Filter state
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | undefined>(undefined);
@@ -1118,67 +1124,69 @@ export default function App() {
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setSidebarOpen(false)}></div>
       )}
 
-      <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 ${theme.sidebar} text-white transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 flex flex-col shadow-xl`}>
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="bg-white/10 p-2 rounded-lg shrink-0">
-               {appConfig.logoUrl ? <img src={appConfig.logoUrl} alt="logo" className="w-5 h-5 object-cover" /> : <Home className="text-white" size={20} />}
+      {!isTableExpanded && (
+        <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 ${theme.sidebar} text-white transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 flex flex-col shadow-xl`}>
+          <div className="p-6 flex items-center justify-between">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="bg-white/10 p-2 rounded-lg shrink-0">
+                {appConfig.logoUrl ? <img src={appConfig.logoUrl} alt="logo" className="w-5 h-5 object-cover" /> : <Home className="text-white" size={20} />}
+              </div>
+              <span className="font-bold text-lg truncate">{appConfig.appName}</span>
             </div>
-            <span className="font-bold text-lg truncate">{appConfig.appName}</span>
+            <button onClick={() => setSidebarOpen(false)} className="md:hidden text-gray-400"><X /></button>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="md:hidden text-gray-400"><X /></button>
-        </div>
-        
-        <nav className="flex-1 px-4 space-y-2 mt-4">
-          <button 
-            onClick={() => { setCurrentView('dashboard'); setSidebarOpen(false); }}
-            className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition ${currentView === 'dashboard' ? `${theme.sidebarActive} text-white shadow-inner` : `text-white/80 ${theme.sidebarHover}`}`}
-          >
-            <Calendar size={20} /> แดชบอร์ด
-          </button>
-
-          {currentUser.role === UserRole.ADMIN && (
-            <button 
-              onClick={() => { setCurrentView('settings'); setSidebarOpen(false); }}
-              className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition ${currentView === 'settings' ? `${theme.sidebarActive} text-white shadow-inner` : `text-white/80 ${theme.sidebarHover}`}`}
-            >
-              <Layout size={20} /> จัดการบ้านพัก
-            </button>
-          )}
-
-          {currentUser.role === UserRole.ADMIN && (
-            <button 
-              onClick={() => { setCurrentView('system_settings'); setSidebarOpen(false); }}
-              className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition ${currentView === 'system_settings' ? `${theme.sidebarActive} text-white shadow-inner` : `text-white/80 ${theme.sidebarHover}`}`}
-            >
-              <Monitor size={20} /> ตั้งค่าระบบ
-            </button>
-          )}
           
-          <div className="pt-4 pb-2 px-4 text-xs font-semibold text-white/40 uppercase tracking-wider">เมนูด่วน</div>
-          <button onClick={() => { setIsModalOpen(true); setEditingBooking(undefined); setPrefillData(null); setSidebarOpen(false); }} className={`flex items-center gap-3 w-full px-4 py-3 text-white/80 ${theme.sidebarHover} rounded-xl transition`}>
-            <Plus size={20} /> เพิ่มการจอง
-          </button>
-        </nav>
+          <nav className="flex-1 px-4 space-y-2 mt-4">
+            <button 
+              onClick={() => { setCurrentView('dashboard'); setSidebarOpen(false); }}
+              className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition ${currentView === 'dashboard' ? `${theme.sidebarActive} text-white shadow-inner` : `text-white/80 ${theme.sidebarHover}`}`}
+            >
+              <Calendar size={20} /> แดชบอร์ด
+            </button>
 
-        <div className="p-4 bg-black/20">
-          <div className="flex items-center gap-3 mb-4">
-            <img src={currentUser.avatar} alt="User" className="w-10 h-10 rounded-full border-2 border-white/20" />
-            <div className="overflow-hidden">
-              <p className="text-sm font-medium truncate">{currentUser.name}</p>
-              <p className="text-xs text-white/60">{currentUser.role === UserRole.ADMIN ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่'}</p>
+            {currentUser.role === UserRole.ADMIN && (
+              <button 
+                onClick={() => { setCurrentView('settings'); setSidebarOpen(false); }}
+                className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition ${currentView === 'settings' ? `${theme.sidebarActive} text-white shadow-inner` : `text-white/80 ${theme.sidebarHover}`}`}
+              >
+                <Layout size={20} /> จัดการบ้านพัก
+              </button>
+            )}
+
+            {currentUser.role === UserRole.ADMIN && (
+              <button 
+                onClick={() => { setCurrentView('system_settings'); setSidebarOpen(false); }}
+                className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition ${currentView === 'system_settings' ? `${theme.sidebarActive} text-white shadow-inner` : `text-white/80 ${theme.sidebarHover}`}`}
+              >
+                <Monitor size={20} /> ตั้งค่าระบบ
+              </button>
+            )}
+            
+            <div className="pt-4 pb-2 px-4 text-xs font-semibold text-white/40 uppercase tracking-wider">เมนูด่วน</div>
+            <button onClick={() => { setIsModalOpen(true); setEditingBooking(undefined); setPrefillData(null); setSidebarOpen(false); }} className={`flex items-center gap-3 w-full px-4 py-3 text-white/80 ${theme.sidebarHover} rounded-xl transition`}>
+              <Plus size={20} /> เพิ่มการจอง
+            </button>
+          </nav>
+
+          <div className="p-4 bg-black/20">
+            <div className="flex items-center gap-3 mb-4">
+              <img src={currentUser.avatar} alt="User" className="w-10 h-10 rounded-full border-2 border-white/20" />
+              <div className="overflow-hidden">
+                <p className="text-sm font-medium truncate">{currentUser.name}</p>
+                <p className="text-xs text-white/60">{currentUser.role === UserRole.ADMIN ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่'}</p>
+              </div>
             </div>
+            <button onClick={handleLogout} className="flex items-center gap-2 text-red-300 hover:text-red-200 text-sm w-full transition">
+              <LogOut size={16} /> ออกจากระบบ
+            </button>
           </div>
-          <button onClick={handleLogout} className="flex items-center gap-2 text-red-300 hover:text-red-200 text-sm w-full transition">
-            <LogOut size={16} /> ออกจากระบบ
-          </button>
-        </div>
-      </aside>
+        </aside>
+      )}
 
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <header className="bg-white border-b border-gray-200 h-16 flex-none flex items-center justify-between px-6 shadow-sm z-10">
           <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="md:hidden text-gray-500"><Menu /></button>
+            {!isTableExpanded && <button onClick={() => setSidebarOpen(true)} className="md:hidden text-gray-500"><Menu /></button>}
             <h2 className={`text-xl font-bold ${theme.textPrimary} hidden sm:block`}>
               {currentView === 'dashboard' ? 'ตารางบ้านพักอุทยาน' : currentView === 'settings' ? 'จัดการข้อมูลบ้านพัก' : 'ตั้งค่าระบบ'}
             </h2>
@@ -1206,46 +1214,65 @@ export default function App() {
         {currentView === 'dashboard' ? (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-3 md:p-4 space-y-2">
             
-            <div className="flex-none grid grid-cols-1 md:grid-cols-3 gap-3">
-               <div className="bg-white p-2 md:p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between relative overflow-hidden group">
-                  <div className="relative z-10">
-                     <p className="text-gray-500 text-xs flex items-center gap-1">
-                       ยอดจองยืนยัน ({statsMode === 'month' ? 'รายเดือน' : 'รายปี'})
-                       <button onClick={() => setStatsMode(prev => prev === 'month' ? 'year' : 'month')} className="bg-gray-100 hover:bg-gray-200 px-1.5 py-0.5 rounded text-[10px] text-gray-600 ml-1 transition">
-                         {statsMode === 'month' ? 'เปลี่ยนเป็นปี' : 'เปลี่ยนเป็นเดือน'}
-                       </button>
-                     </p>
-                     <p className={`text-lg md:text-xl font-bold ${theme.textPrimary} mt-0.5`}>{stats.confirmedCount} รายการ</p>
-                  </div>
-                  <div className={`${theme.bgHighlight} p-2 rounded-full ${theme.textSecondary}`}><CheckCircle2 size={20} /></div>
-               </div>
+            {!isTableExpanded && (
+              <div className="flex-none grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="bg-white p-2 md:p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between relative overflow-hidden group">
+                    <div className="relative z-10">
+                      <p className="text-gray-500 text-xs flex items-center gap-1">
+                        ยอดจองยืนยัน ({statsMode === 'month' ? 'รายเดือน' : 'รายปี'})
+                        <button onClick={() => setStatsMode(prev => prev === 'month' ? 'year' : 'month')} className="bg-gray-100 hover:bg-gray-200 px-1.5 py-0.5 rounded text-[10px] text-gray-600 ml-1 transition">
+                          {statsMode === 'month' ? 'เปลี่ยนเป็นปี' : 'เปลี่ยนเป็นเดือน'}
+                        </button>
+                      </p>
+                      <p className={`text-lg md:text-xl font-bold ${theme.textPrimary} mt-0.5`}>{stats.confirmedCount} รายการ</p>
+                    </div>
+                    <div className={`${theme.bgHighlight} p-2 rounded-full ${theme.textSecondary}`}><CheckCircle2 size={20} /></div>
+                </div>
 
-               <div className="bg-white p-2 md:p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                  <div>
-                     <p className="text-gray-500 text-xs">รายรับโดยประมาณ</p>
-                     <p className="text-lg md:text-xl font-bold text-green-600 mt-0.5">฿{stats.totalRevenue.toLocaleString()}</p>
-                  </div>
-                  <div className="bg-green-50 p-2 rounded-full text-green-600"><Banknote size={20} /></div>
-               </div>
+                <div className="bg-white p-2 md:p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-xs">รายรับโดยประมาณ</p>
+                      <p className="text-lg md:text-xl font-bold text-green-600 mt-0.5">฿{stats.totalRevenue.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-green-50 p-2 rounded-full text-green-600"><Banknote size={20} /></div>
+                </div>
 
-               <div className="bg-white p-2 md:p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                  <div>
-                     <p className="text-gray-500 text-xs">อัตราการเข้าพัก & บ้านว่าง</p>
-                     <div className="flex items-baseline gap-2 mt-0.5">
-                       <p className="text-lg md:text-xl font-bold text-orange-600">{Math.round(stats.occupancyRate)}%</p>
-                       <span className="text-xs text-gray-400">|</span>
-                       <p className="text-sm font-semibold text-gray-600">{availableHouses}/{totalHouses} ว่าง</p>
-                     </div>
-                  </div>
-                  <div className="bg-orange-50 p-2 rounded-full text-orange-600"><Users size={20} /></div>
-               </div>
-            </div>
+                <div className="bg-white p-2 md:p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-xs">อัตราการเข้าพัก & บ้านว่าง</p>
+                      <div className="flex items-baseline gap-2 mt-0.5">
+                        <p className="text-lg md:text-xl font-bold text-orange-600">{Math.round(stats.occupancyRate)}%</p>
+                        <span className="text-xs text-gray-400">|</span>
+                        <p className="text-sm font-semibold text-gray-600">{availableHouses}/{totalHouses} ว่าง</p>
+                      </div>
+                    </div>
+                    <div className="bg-orange-50 p-2 rounded-full text-orange-600"><Users size={20} /></div>
+                </div>
+              </div>
+            )}
 
             <div className="flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-0">
               <div className="flex-none p-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between flex-wrap gap-2 z-20">
-                <h3 className="font-semibold text-gray-800 flex items-center gap-2 text-sm">
-                   <Calendar size={16} /> ตารางจอง
-                </h3>
+                <div className="flex items-center gap-4">
+                  <h3 className="font-semibold text-gray-800 flex items-center gap-2 text-sm">
+                     <Calendar size={16} /> ตารางจอง
+                  </h3>
+                  <div className="h-6 w-px bg-gray-300 hidden md:block"></div>
+                  <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-md px-2 py-1 shadow-sm">
+                    <Filter size={14} className="text-gray-400" />
+                    <select 
+                      value={filterHouseId}
+                      onChange={(e) => setFilterHouseId(e.target.value)}
+                      className="text-xs bg-transparent border-none focus:ring-0 p-0 text-gray-700 font-medium cursor-pointer min-w-[100px]"
+                    >
+                      <option value="all">บ้านพักทั้งหมด</option>
+                      {accommodations.map(acc => (
+                        <option key={acc.id} value={acc.id}>{acc.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
                    <button onClick={() => changeMonth(-1)} className="p-1.5 hover:bg-gray-200 rounded-full transition text-gray-600">
                      <ChevronLeft size={18} />
@@ -1259,6 +1286,13 @@ export default function App() {
                    <button onClick={goToToday} className={`ml-2 px-2 py-1 text-xs border ${theme.borderHighlight} ${theme.textSecondary} rounded-md hover:${theme.bgHighlight}`}>
                       วันนี้
                    </button>
+                   <button 
+                     onClick={() => setIsTableExpanded(!isTableExpanded)}
+                     className={`ml-2 p-1.5 rounded-md border ${theme.borderHighlight} ${theme.textSecondary} hover:${theme.bgHighlight}`}
+                     title={isTableExpanded ? "ย่อตาราง" : "ขยายเต็มจอ"}
+                   >
+                     {isTableExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                   </button>
                 </div>
               </div>
               
@@ -1267,29 +1301,31 @@ export default function App() {
                   <thead className="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-40 shadow-sm">
                     <tr>
                       <th className="px-4 py-3 border-b sticky left-0 top-0 bg-gray-50 z-50 w-32 min-w-[120px] shadow-[2px_2px_5px_-2px_rgba(0,0,0,0.1)] h-[48px]">วันที่ / บ้าน</th>
-                      {accommodations.map(acc => {
-                        const isVip = isVipZone(acc.zone);
-                        return (
-                          <th key={acc.id} className={`px-4 py-3 border-b min-w-[140px] text-center group relative shadow-[0_2px_5px_-2px_rgba(0,0,0,0.1)] h-[48px] ${isVip ? 'bg-orange-50 border-orange-100' : 'bg-gray-50'}`}>
-                            <div className={`font-bold ${acc.status === 'maintenance' ? 'text-gray-400' : isVip ? 'text-orange-800' : theme.textPrimary} flex items-center justify-center gap-1 cursor-help`}>
-                              {acc.name} 
-                              {isVip ? <Crown size={14} className="text-orange-500 fill-orange-200" /> : <Info size={12} className="text-gray-400 opacity-50" />}
-                            </div>
-                            <div className={`text-[10px] ${isVip ? 'text-orange-600/70' : 'text-gray-500'}`}>{acc.zone} ({acc.capacity} คน)</div>
-                            
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-56 bg-white border border-gray-200 shadow-xl rounded-lg p-3 hidden group-hover:block z-50 text-left normal-case">
-                              <h4 className="font-bold text-gray-800 mb-1">{acc.name}</h4>
-                              <div className="text-xs text-gray-600 space-y-1">
-                                  <p className="flex items-center gap-2"><span className={`w-4 h-4 ${theme.bgHighlight} rounded-full flex items-center justify-center ${theme.textSecondary}`}><Users size={10} /></span> รองรับ {acc.capacity} ท่าน</p>
-                                  <p className="flex items-center gap-2"><span className={`w-4 h-4 ${theme.bgHighlight} rounded-full flex items-center justify-center ${theme.textSecondary}`}><Banknote size={10} /></span> {acc.price.toLocaleString()} บาท/คืน</p>
-                                  <p className="flex items-start gap-2">
-                                    <span className={`w-4 h-4 ${theme.bgHighlight} rounded-full flex items-center justify-center ${theme.textSecondary} mt-0.5`}><Info size={10} /></span> 
-                                    <span className="line-clamp-3">{acc.description || 'ไม่มีรายละเอียดเพิ่มเติม'}</span>
-                                  </p>
+                      {accommodations
+                        .filter(acc => filterHouseId === 'all' || acc.id === filterHouseId)
+                        .map(acc => {
+                          const isVip = isVipZone(acc.zone);
+                          return (
+                            <th key={acc.id} className={`px-4 py-3 border-b min-w-[140px] text-center group relative shadow-[0_2px_5px_-2px_rgba(0,0,0,0.1)] h-[48px] ${isVip ? 'bg-orange-50 border-orange-100' : 'bg-gray-50'}`}>
+                              <div className={`font-bold ${acc.status === 'maintenance' ? 'text-gray-400' : isVip ? 'text-orange-800' : theme.textPrimary} flex items-center justify-center gap-1 cursor-help`}>
+                                {acc.name} 
+                                {isVip ? <Crown size={14} className="text-orange-500 fill-orange-200" /> : <Info size={12} className="text-gray-400 opacity-50" />}
                               </div>
-                            </div>
-                          </th>
-                        );
+                              <div className={`text-[10px] ${isVip ? 'text-orange-600/70' : 'text-gray-500'}`}>{acc.zone} ({acc.capacity} คน)</div>
+                              
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-56 bg-white border border-gray-200 shadow-xl rounded-lg p-3 hidden group-hover:block z-50 text-left normal-case">
+                                <h4 className="font-bold text-gray-800 mb-1">{acc.name}</h4>
+                                <div className="text-xs text-gray-600 space-y-1">
+                                    <p className="flex items-center gap-2"><span className={`w-4 h-4 ${theme.bgHighlight} rounded-full flex items-center justify-center ${theme.textSecondary}`}><Users size={10} /></span> รองรับ {acc.capacity} ท่าน</p>
+                                    <p className="flex items-center gap-2"><span className={`w-4 h-4 ${theme.bgHighlight} rounded-full flex items-center justify-center ${theme.textSecondary}`}><Banknote size={10} /></span> {acc.price.toLocaleString()} บาท/คืน</p>
+                                    <p className="flex items-start gap-2">
+                                      <span className={`w-4 h-4 ${theme.bgHighlight} rounded-full flex items-center justify-center ${theme.textSecondary} mt-0.5`}><Info size={10} /></span> 
+                                      <span className="line-clamp-3">{acc.description || 'ไม่มีรายละเอียดเพิ่มเติม'}</span>
+                                    </p>
+                                </div>
+                              </div>
+                            </th>
+                          );
                       })}
                     </tr>
                   </thead>
@@ -1303,46 +1339,48 @@ export default function App() {
                           <td className={`px-4 py-2 border-b font-medium sticky left-0 z-30 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] ${isToday ? 'bg-blue-50 text-blue-800' : isWeekend ? 'bg-red-50 text-red-800' : 'bg-white text-gray-900'}`}>
                             {new Date(date).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', weekday: 'short' })}
                           </td>
-                          {accommodations.map(acc => {
-                            const booking = getBookingForCell(acc.id, date);
-                            const isStart = booking?.checkInDate === date;
-                            const isVip = isVipZone(acc.zone);
-                            
-                            let cellClass = "border-b border-r text-center p-0.5 relative h-12";
-                            let content = null;
+                          {accommodations
+                            .filter(acc => filterHouseId === 'all' || acc.id === filterHouseId)
+                            .map(acc => {
+                              const booking = getBookingForCell(acc.id, date);
+                              const isStart = booking?.checkInDate === date;
+                              const isVip = isVipZone(acc.zone);
+                              
+                              let cellClass = "border-b border-r text-center p-0.5 relative h-12";
+                              let content = null;
 
-                            if (acc.status === 'maintenance') {
-                               cellClass += " bg-gray-100";
-                               content = <span className="text-[10px] text-gray-400">ปิดปรับปรุง</span>;
-                            } else if (booking) {
-                               const isConfirmed = booking.status === BookingStatus.CONFIRMED;
-                               cellClass += isConfirmed ? " bg-green-100 hover:bg-green-200 cursor-pointer" : " bg-yellow-50 hover:bg-yellow-100 cursor-pointer";
-                               
-                               if (isStart || date === dates[0]) {
-                                 content = (
-                                   <div onClick={() => handleEdit(booking)} className="text-xs font-semibold leading-tight truncate px-1">
-                                     {booking.guestName}
-                                     <div className="text-[10px] font-normal opacity-75">{isConfirmed ? 'ยืนยัน' : 'รออนุมัติ'}</div>
-                                   </div>
-                                 );
-                               }
-                            } else {
-                               cellClass += isVip 
-                                 ? " bg-orange-50/10 hover:bg-orange-100 cursor-pointer text-transparent hover:text-orange-400" 
-                                 : " hover:bg-park-50 cursor-pointer text-transparent hover:text-park-300";
-                               
-                               content = <div onClick={() => {
-                                 setEditingBooking(undefined);
-                                 setPrefillData({ accommodationId: acc.id, checkInDate: date });
-                                 setIsModalOpen(true);
-                               }} className="w-full h-full flex items-center justify-center text-xl">+</div>;
-                            }
+                              if (acc.status === 'maintenance') {
+                                 cellClass += " bg-gray-100";
+                                 content = <span className="text-[10px] text-gray-400">ปิดปรับปรุง</span>;
+                              } else if (booking) {
+                                 const isConfirmed = booking.status === BookingStatus.CONFIRMED;
+                                 cellClass += isConfirmed ? " bg-green-100 hover:bg-green-200 cursor-pointer" : " bg-yellow-50 hover:bg-yellow-100 cursor-pointer";
+                                 
+                                 if (isStart || date === dates[0]) {
+                                   content = (
+                                     <div onClick={() => handleEdit(booking)} className="text-xs font-semibold leading-tight truncate px-1">
+                                       {booking.guestName}
+                                       <div className="text-[10px] font-normal opacity-75">{isConfirmed ? 'ยืนยัน' : 'รออนุมัติ'}</div>
+                                     </div>
+                                   );
+                                 }
+                              } else {
+                                 cellClass += isVip 
+                                   ? " bg-orange-50/10 hover:bg-orange-100 cursor-pointer text-transparent hover:text-orange-400" 
+                                   : " hover:bg-park-50 cursor-pointer text-transparent hover:text-park-300";
+                                 
+                                 content = <div onClick={() => {
+                                   setEditingBooking(undefined);
+                                   setPrefillData({ accommodationId: acc.id, checkInDate: date });
+                                   setIsModalOpen(true);
+                                 }} className="w-full h-full flex items-center justify-center text-xl">+</div>;
+                              }
 
-                            return (
-                              <td key={`${date}-${acc.id}`} className={cellClass}>
-                                {content}
-                              </td>
-                            );
+                              return (
+                                <td key={`${date}-${acc.id}`} className={cellClass}>
+                                  {content}
+                                </td>
+                              );
                           })}
                         </tr>
                       );
@@ -1352,42 +1390,60 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex-none bg-white rounded-xl shadow-sm border border-gray-200 p-3 max-h-[140px] overflow-auto">
-               <h3 className="font-semibold text-gray-800 mb-2 text-sm sticky top-0 bg-white pb-2 z-10">รายการจองล่าสุด</h3>
-               <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <tbody className="divide-y divide-gray-100">
-                      {bookings.slice().reverse().slice(0, 5).map(booking => {
-                        const house = accommodations.find(a => a.id === booking.accommodationId);
-                        return (
-                          <tr key={booking.id} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 font-medium">
-                              {booking.guestName}
-                              <span className="text-xs text-gray-500 ml-2">{booking.guestPhone}</span>
-                            </td>
-                            <td className="px-3 py-2 text-xs text-gray-600">{house?.name || <span className="text-red-400">N/A</span>}</td>
-                            <td className="px-3 py-2 text-xs text-gray-500">
-                              {new Date(booking.checkInDate).toLocaleDateString('th-TH')} - {new Date(booking.checkOutDate).toLocaleDateString('th-TH')}
-                            </td>
-                            <td className="px-3 py-2">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                booking.status === BookingStatus.CONFIRMED ? 'bg-green-100 text-green-700' :
-                                booking.status === BookingStatus.PENDING ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
-                                {booking.status}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2 text-right">
-                               <button onClick={() => handleEdit(booking)} className={`${theme.textSecondary} hover:${theme.textPrimary} text-xs font-medium`}>แก้ไข</button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-               </div>
-            </div>
+            {!isTableExpanded && (
+              <div className="flex-none bg-white rounded-xl shadow-sm border border-gray-200 p-3 max-h-[140px] overflow-auto">
+                <h3 className="font-semibold text-gray-800 mb-2 text-sm sticky top-0 bg-white pb-2 z-10 flex items-center justify-between">
+                  <span>
+                    {filterHouseId === 'all' 
+                      ? 'รายการจองล่าสุด' 
+                      : `รายการจอง: ${accommodations.find(a => a.id === filterHouseId)?.name}`
+                    }
+                  </span>
+                  {filterHouseId !== 'all' && (
+                    <span className="text-xs bg-park-100 text-park-700 px-2 py-0.5 rounded-full">กรองตามบ้าน</span>
+                  )}
+                </h3>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                      <tbody className="divide-y divide-gray-100">
+                        {bookings
+                          .filter(b => filterHouseId === 'all' || b.accommodationId === filterHouseId)
+                          .slice().reverse().slice(0, filterHouseId === 'all' ? 5 : 20) // Show more if filtered
+                          .map(booking => {
+                            const house = accommodations.find(a => a.id === booking.accommodationId);
+                            return (
+                              <tr key={booking.id} className="hover:bg-gray-50">
+                                <td className="px-3 py-2 font-medium">
+                                  {booking.guestName}
+                                  <span className="text-xs text-gray-500 ml-2">{booking.guestPhone}</span>
+                                </td>
+                                <td className="px-3 py-2 text-xs text-gray-600">{house?.name || <span className="text-red-400">N/A</span>}</td>
+                                <td className="px-3 py-2 text-xs text-gray-500">
+                                  {new Date(booking.checkInDate).toLocaleDateString('th-TH')} - {new Date(booking.checkOutDate).toLocaleDateString('th-TH')}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                    booking.status === BookingStatus.CONFIRMED ? 'bg-green-100 text-green-700' :
+                                    booking.status === BookingStatus.PENDING ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-red-100 text-red-700'
+                                  }`}>
+                                    {booking.status}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  <button onClick={() => handleEdit(booking)} className={`${theme.textSecondary} hover:${theme.textPrimary} text-xs font-medium`}>แก้ไข</button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        {bookings.filter(b => filterHouseId === 'all' || b.accommodationId === filterHouseId).length === 0 && (
+                          <tr><td colSpan={5} className="text-center py-4 text-gray-400 text-xs">ไม่พบรายการจอง</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                </div>
+              </div>
+            )}
 
           </div>
         ) : currentView === 'settings' ? (
