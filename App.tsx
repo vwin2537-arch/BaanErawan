@@ -380,19 +380,19 @@ const LoginScreen = ({ onLogin, config, users, onRefreshData }: {
   };
 
   return (
-    <div className="min-h-screen bg-cover bg-center flex items-center justify-center p-4 relative" 
+    <div className="min-h-screen bg-cover bg-center flex items-center justify-center p-4 relative overflow-y-auto" 
          style={{backgroundImage: 'url("https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80")'}}>
       <div className={`absolute inset-0 ${theme.sidebar} bg-opacity-80 backdrop-blur-sm`}></div>
       
       <button 
         onClick={() => setShowConnection(true)}
-        className="absolute top-4 right-4 text-white/20 hover:text-white transition p-2"
+        className="absolute top-4 right-4 text-white/20 hover:text-white transition p-2 z-20"
         title="ตั้งค่าฐานข้อมูล"
       >
         <Database size={24} />
       </button>
 
-      <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative z-10 animate-in fade-in zoom-in duration-500">
+      <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative z-10 animate-in fade-in zoom-in duration-500 my-8">
         <div className="text-center mb-6">
           <div className={`w-20 h-20 ${theme.bgHighlight} ${theme.textSecondary} rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden border-2 border-gray-100`}>
              {config.logoUrl ? <img src={config.logoUrl} alt="Logo" className="w-full h-full object-cover" /> : <Home size={36} />}
@@ -581,11 +581,19 @@ export default function App() {
   });
 
   useEffect(() => {
+    // 1. Load User Session
+    const savedUser = localStorage.getItem('parkStay_currentUser');
+    if (savedUser) {
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+      } catch(e) { console.error('Failed to restore session'); }
+    }
+
+    // 2. Load Config
     try {
       const savedConfig = localStorage.getItem('parkStay_appConfig');
       if (savedConfig) {
         const parsed = JSON.parse(savedConfig);
-        // Valid Theme Check
         if (!THEME_CONFIG[parsed.theme as ThemeKey]) {
             parsed.theme = 'green';
         }
@@ -738,8 +746,15 @@ export default function App() {
     setViewDate(new Date());
   };
 
-  const handleLogin = (user: User) => setCurrentUser(user);
-  const handleLogout = () => setCurrentUser(null);
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+    localStorage.setItem('parkStay_currentUser', JSON.stringify(user));
+  };
+  
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('parkStay_currentUser');
+  };
 
   const handleSaveBooking = async (data: Omit<Booking, 'id' | 'createdAt' | 'bookedBy'>) => {
     const url = localStorage.getItem('parkStay_sheetUrl') || DEFAULT_SCRIPT_URL;
