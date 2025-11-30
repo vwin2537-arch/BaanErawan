@@ -42,11 +42,11 @@
         height: 100%;
       }
 
-      /* PRINT STYLES */
+      /* PRINT STYLES - A4 LANDSCAPE OPTIMIZATION */
       @media print {
         @page {
-          size: landscape;
-          margin: 5mm;
+          size: A4 landscape;
+          margin: 10mm;
         }
 
         body {
@@ -55,6 +55,7 @@
           print-color-adjust: exact !important;
           height: auto !important;
           overflow: visible !important;
+          font-size: 9pt !important; /* Optimal for A4 data density */
         }
 
         #root {
@@ -63,7 +64,7 @@
         }
 
         /* Hide UI elements */
-        .no-print {
+        .no-print, .print-control-bar {
           display: none !important;
         }
 
@@ -84,12 +85,21 @@
         table {
           width: 100% !important;
           border-collapse: collapse !important;
-          font-size: 10px !important; /* Smaller font for print */
+          table-layout: fixed !important; /* Better column width control */
+        }
+        
+        thead {
+          display: table-header-group; /* Repeat header on every page */
+        }
+
+        tr {
+          page-break-inside: avoid; /* Prevent row splitting */
         }
         
         th, td {
           border: 1px solid #ccc !important;
-          page-break-inside: avoid;
+          padding: 4px !important;
+          font-size: 9pt !important;
         }
 
         /* Ensure sticky headers don't float in middle of paper */
@@ -97,13 +107,22 @@
           position: static !important;
         }
 
-        /* Force specific background colors */
-        .bg-green-100 { background-color: #dcfce7 !important; }
-        .bg-red-100 { background-color: #fee2e2 !important; }
-        .bg-yellow-100 { background-color: #fef9c3 !important; }
+        /* Remove shadows */
+        .shadow-sm, .shadow-md, .shadow-xl {
+          box-shadow: none !important;
+        }
+
+        /* Color Adjustments for Print Clarity */
+        .bg-green-100 { background-color: #dcfce7 !important; border-color: #86efac !important; }
+        .bg-red-100 { background-color: #fee2e2 !important; border-color: #fca5a5 !important; }
+        .bg-yellow-100 { background-color: #fef9c3 !important; border-color: #fde047 !important; }
         .bg-blue-50 { background-color: #eff6ff !important; }
-        .bg-gray-50 { background-color: #f9fafb !important; }
         .bg-orange-50 { background-color: #fff7ed !important; }
+        
+        /* Ensure VIP icons render */
+        svg {
+          print-color-adjust: exact;
+        }
       }
 
       .print-only {

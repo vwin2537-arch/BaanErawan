@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Home, 
@@ -40,7 +39,9 @@ import {
   Maximize2,
   Minimize2,
   Filter,
-  Printer
+  Printer,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { MOCK_USERS, ACCOMMODATIONS, INITIAL_BOOKINGS } from './services/mockData';
 import { User, Booking, UserRole, BookingStatus, Accommodation } from './types';
@@ -277,7 +278,135 @@ const normalizeUser = (raw: any, index: number): User => {
   return { id, username, password, name, role, avatar, status };
 };
 
-// --- Login Component ---
+// --- Components ---
+
+const PrintSettingsModal = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  accommodations,
+  initialSelectedIds
+}: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  onConfirm: (ids: string[]) => void, 
+  accommodations: Accommodation[],
+  initialSelectedIds: string[]
+}) => {
+  const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds);
+  
+  // Group by Zone
+  const zones = Array.from(new Set(accommodations.map(a => a.zone))).sort();
+  
+  useEffect(() => {
+    if (isOpen) {
+       // If no selection passed (e.g. first open), default to all ACTIVE
+       if (initialSelectedIds.length === 0) {
+          setSelectedIds(accommodations.filter(a => a.status === 'active').map(a => a.id));
+       } else {
+          setSelectedIds(initialSelectedIds);
+       }
+    }
+  }, [isOpen]);
+
+  const toggleId = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleZone = (zone: string) => {
+    const accsInZone = accommodations.filter(a => a.zone === zone).map(a => a.id);
+    const allSelected = accsInZone.every(id => selectedIds.includes(id));
+    
+    if (allSelected) {
+       // Deselect all in zone
+       setSelectedIds(prev => prev.filter(id => !accsInZone.includes(id)));
+    } else {
+       // Select all in zone
+       setSelectedIds(prev => [...new Set([...prev, ...accsInZone])]);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 no-print">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="bg-park-800 p-4 flex justify-between items-center text-white shrink-0">
+           <h2 className="text-lg font-bold flex items-center gap-2"><Printer size={20} /> พิมพ์รายงาน / ส่งออก PDF</h2>
+           <button onClick={onClose} className="hover:text-red-200"><X size={24} /></button>
+        </div>
+        
+        <div className="p-4 bg-gray-50 border-b flex justify-between items-center shrink-0">
+           <div className="text-sm text-gray-600">
+             เลือกบ้านพักที่ต้องการแสดงในรายงาน ({selectedIds.length} หลัง)
+           </div>
+           <div className="space-x-2">
+              <button 
+                onClick={() => setSelectedIds(accommodations.map(a => a.id))}
+                className="text-xs bg-white border border-gray-300 px-2 py-1 rounded hover:bg-gray-100"
+              >
+                เลือกทั้งหมด
+              </button>
+              <button 
+                onClick={() => setSelectedIds([])}
+                className="text-xs bg-white border border-gray-300 px-2 py-1 rounded hover:bg-gray-100"
+              >
+                ล้างค่า
+              </button>
+           </div>
+        </div>
+
+        <div className="p-6 overflow-y-auto flex-1">
+           <div className="space-y-6">
+              {zones.map(zone => {
+                 const accs = accommodations.filter(a => a.zone === zone);
+                 const allSelected = accs.every(a => selectedIds.includes(a.id));
+                 
+                 return (
+                    <div key={zone} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                       <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
+                          <button onClick={() => toggleZone(zone)} className="text-park-600 hover:text-park-800">
+                             {allSelected ? <CheckSquare size={20} /> : <Square size={20} />}
+                          </button>
+                          <span className="font-bold text-gray-800">โซน {zone}</span>
+                          <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{accs.length} หลัง</span>
+                       </div>
+                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {accs.map(acc => (
+                             <label key={acc.id} className={`flex items-center gap-2 p-2 rounded cursor-pointer border transition ${selectedIds.includes(acc.id) ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-transparent hover:bg-gray-100'}`}>
+                                <input 
+                                   type="checkbox" 
+                                   checked={selectedIds.includes(acc.id)} 
+                                   onChange={() => toggleId(acc.id)}
+                                   className="rounded text-park-600 focus:ring-park-500"
+                                />
+                                <span className={`text-sm ${selectedIds.includes(acc.id) ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
+                                   {acc.name}
+                                </span>
+                             </label>
+                          ))}
+                       </div>
+                    </div>
+                 );
+              })}
+           </div>
+        </div>
+
+        <div className="p-4 bg-gray-50 border-t shrink-0 flex justify-end gap-3">
+           <button onClick={onClose} className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">ยกเลิก</button>
+           <button 
+              onClick={() => onConfirm(selectedIds)} 
+              disabled={selectedIds.length === 0}
+              className="px-6 py-2 bg-park-600 text-white rounded-lg hover:bg-park-700 shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+           >
+              <Printer size={18} /> แสดงตัวอย่าง & พิมพ์
+           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const LoginScreen = ({ onLogin, config, users, onRefreshData }: { 
   onLogin: (u: User) => void, 
   config: AppConfig, 
@@ -503,7 +632,13 @@ const LoginScreen = ({ onLogin, config, users, onRefreshData }: {
 };
 
 // --- Pending User Row Component ---
-const PendingUserRow = ({ user, onApprove, onDelete }: { user: User, onApprove: (u: User, role: UserRole) => Promise<void>, onDelete: (id: string) => Promise<void> }) => {
+interface PendingUserRowProps {
+  user: User;
+  onApprove: (u: User, role: UserRole) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}
+
+const PendingUserRow: React.FC<PendingUserRowProps> = ({ user, onApprove, onDelete }) => {
   const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.USER);
   const [isProcessing, setIsProcessing] = useState(false);
   const isMounted = useRef(true);
@@ -633,6 +768,11 @@ export default function App() {
   const [isTableExpanded, setIsTableExpanded] = useState(false); // New state for expanding table
   
   const [filterHouseId, setFilterHouseId] = useState<string>('all'); // Filter state
+  
+  // Print Mode States
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [printSelectedIds, setPrintSelectedIds] = useState<string[]>([]);
+  const [isPrintPreview, setIsPrintPreview] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | undefined>(undefined);
@@ -1090,6 +1230,17 @@ export default function App() {
   ).length;
   const availableHouses = Math.max(0, accommodations.filter(a => a.status === 'active').length - occupiedToday);
 
+  // Print Logic Handler
+  const handlePrintConfirm = (ids: string[]) => {
+     setPrintSelectedIds(ids);
+     setIsPrintPreview(true);
+     setIsPrintModalOpen(false);
+  };
+
+  const handleExitPrintPreview = () => {
+     setIsPrintPreview(false);
+     setPrintSelectedIds([]);
+  };
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -1125,7 +1276,7 @@ export default function App() {
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden no-print" onClick={() => setSidebarOpen(false)}></div>
       )}
 
-      {!isTableExpanded && (
+      {!isTableExpanded && !isPrintPreview && (
         <aside className={`fixed md:static inset-y-0 left-0 z-30 w-64 ${theme.sidebar} text-white transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 flex flex-col shadow-xl no-print`}>
           <div className="p-6 flex items-center justify-between">
             <div className="flex items-center gap-3 overflow-hidden">
@@ -1194,7 +1345,31 @@ export default function App() {
           </p>
         </div>
 
-        <header className="bg-white border-b border-gray-200 h-16 flex-none flex items-center justify-between px-6 shadow-sm z-10 no-print">
+        {isPrintPreview && (
+           <div className="bg-gray-800 text-white p-3 flex justify-between items-center no-print print-control-bar">
+               <div className="flex items-center gap-3">
+                  <Printer size={20} className="text-green-400" />
+                  <span className="font-bold">โหมดตัวอย่างก่อนพิมพ์ (Print Preview)</span>
+                  <span className="text-sm text-gray-400 border-l border-gray-600 pl-3">แสดงเฉพาะ {printSelectedIds.length} รายการที่เลือก</span>
+               </div>
+               <div className="flex gap-2">
+                  <button 
+                    onClick={() => window.print()} 
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2"
+                  >
+                     <Printer size={16} /> สั่งพิมพ์
+                  </button>
+                  <button 
+                    onClick={handleExitPrintPreview} 
+                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium"
+                  >
+                     <X size={16} /> ปิด
+                  </button>
+               </div>
+           </div>
+        )}
+
+        <header className={`bg-white border-b border-gray-200 h-16 flex-none flex items-center justify-between px-6 shadow-sm z-10 no-print ${isPrintPreview ? 'hidden' : ''}`}>
           <div className="flex items-center gap-4">
             {!isTableExpanded && <button onClick={() => setSidebarOpen(true)} className="md:hidden text-gray-500"><Menu /></button>}
             <h2 className={`text-xl font-bold ${theme.textPrimary} hidden sm:block`}>
@@ -1224,7 +1399,7 @@ export default function App() {
         {currentView === 'dashboard' ? (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-3 md:p-4 space-y-2">
             
-            {!isTableExpanded && (
+            {!isTableExpanded && !isPrintPreview && (
               <div className="flex-none grid grid-cols-1 md:grid-cols-3 gap-3 no-print">
                 <div className="bg-white p-2 md:p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between relative overflow-hidden group">
                     <div className="relative z-10">
@@ -1268,25 +1443,29 @@ export default function App() {
                      <Calendar size={16} /> ตารางจอง
                   </h3>
                   <div className="h-6 w-px bg-gray-300 hidden md:block"></div>
-                  <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-md px-2 py-1 shadow-sm">
-                    <Filter size={14} className="text-gray-400" />
-                    <select 
-                      value={filterHouseId}
-                      onChange={(e) => setFilterHouseId(e.target.value)}
-                      className="text-xs bg-transparent border-none focus:ring-0 p-0 text-gray-700 font-medium cursor-pointer min-w-[100px]"
-                    >
-                      <option value="all">บ้านพักทั้งหมด</option>
-                      {accommodations.map(acc => (
-                        <option key={acc.id} value={acc.id}>{acc.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {!isPrintPreview && (
+                    <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-md px-2 py-1 shadow-sm">
+                      <Filter size={14} className="text-gray-400" />
+                      <select 
+                        value={filterHouseId}
+                        onChange={(e) => setFilterHouseId(e.target.value)}
+                        className="text-xs bg-transparent border-none focus:ring-0 p-0 text-gray-700 font-medium cursor-pointer min-w-[100px]"
+                      >
+                        <option value="all">บ้านพักทั้งหมด</option>
+                        {accommodations.map(acc => (
+                          <option key={acc.id} value={acc.id}>{acc.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
-                   <button onClick={() => window.print()} className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-md transition text-gray-600 flex items-center gap-1 text-xs font-medium" title="พิมพ์รายงาน">
-                     <Printer size={16} />
-                   </button>
+                   {!isPrintPreview && (
+                     <button onClick={() => setIsPrintModalOpen(true)} className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-md transition text-gray-600 flex items-center gap-1 text-xs font-medium" title="พิมพ์รายงาน">
+                       <Printer size={16} />
+                     </button>
+                   )}
                    <button onClick={() => changeMonth(-1)} className="p-1.5 hover:bg-gray-200 rounded-full transition text-gray-600">
                      <ChevronLeft size={18} />
                    </button>
@@ -1299,13 +1478,15 @@ export default function App() {
                    <button onClick={goToToday} className={`ml-2 px-2 py-1 text-xs border ${theme.borderHighlight} ${theme.textSecondary} rounded-md hover:${theme.bgHighlight}`}>
                       วันนี้
                    </button>
-                   <button 
-                     onClick={() => setIsTableExpanded(!isTableExpanded)}
-                     className={`ml-2 p-1.5 rounded-md border ${theme.borderHighlight} ${theme.textSecondary} hover:${theme.bgHighlight}`}
-                     title={isTableExpanded ? "ย่อตาราง" : "ขยายเต็มจอ"}
-                   >
-                     {isTableExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                   </button>
+                   {!isPrintPreview && (
+                     <button 
+                       onClick={() => setIsTableExpanded(!isTableExpanded)}
+                       className={`ml-2 p-1.5 rounded-md border ${theme.borderHighlight} ${theme.textSecondary} hover:${theme.bgHighlight}`}
+                       title={isTableExpanded ? "ย่อตาราง" : "ขยายเต็มจอ"}
+                     >
+                       {isTableExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                     </button>
+                   )}
                 </div>
               </div>
               
@@ -1315,7 +1496,10 @@ export default function App() {
                     <tr>
                       <th className="px-4 py-3 border-b sticky left-0 top-0 bg-gray-50 z-50 w-32 min-w-[120px] shadow-[2px_2px_5px_-2px_rgba(0,0,0,0.1)] h-[48px]">วันที่ / บ้าน</th>
                       {accommodations
-                        .filter(acc => filterHouseId === 'all' || acc.id === filterHouseId)
+                        .filter(acc => {
+                           if (isPrintPreview) return printSelectedIds.includes(acc.id);
+                           return filterHouseId === 'all' || acc.id === filterHouseId;
+                        })
                         .map(acc => {
                           const isVip = isVipZone(acc.zone);
                           return (
@@ -1353,7 +1537,10 @@ export default function App() {
                             {new Date(date).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', weekday: 'short' })}
                           </td>
                           {accommodations
-                            .filter(acc => filterHouseId === 'all' || acc.id === filterHouseId)
+                            .filter(acc => {
+                               if (isPrintPreview) return printSelectedIds.includes(acc.id);
+                               return filterHouseId === 'all' || acc.id === filterHouseId;
+                            })
                             .map(acc => {
                               const booking = getBookingForCell(acc.id, date);
                               const isStart = booking?.checkInDate === date;
@@ -1403,7 +1590,7 @@ export default function App() {
               </div>
             </div>
 
-            {!isTableExpanded && (
+            {!isTableExpanded && !isPrintPreview && (
               <div className="flex-none bg-white rounded-xl shadow-sm border border-gray-200 p-3 max-h-[140px] overflow-auto no-print">
                 <h3 className="font-semibold text-gray-800 mb-2 text-sm sticky top-0 bg-white pb-2 z-10 flex items-center justify-between">
                   <span>
@@ -1580,6 +1767,14 @@ export default function App() {
          onClose={() => setIsConnModalOpen(false)}
          currentUrl={localStorage.getItem('parkStay_sheetUrl') || DEFAULT_SCRIPT_URL}
          onSave={handleSaveUrl}
+      />
+
+      <PrintSettingsModal 
+         isOpen={isPrintModalOpen}
+         onClose={() => setIsPrintModalOpen(false)}
+         onConfirm={handlePrintConfirm}
+         accommodations={accommodations}
+         initialSelectedIds={printSelectedIds}
       />
     </div>
   );
